@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OrderMatchingEngine.OrderBook
 {
-    class Trades
+    public class Trades
     {
     }
 }

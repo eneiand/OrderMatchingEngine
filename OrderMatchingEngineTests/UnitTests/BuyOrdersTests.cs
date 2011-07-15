@@ -19,7 +19,7 @@ namespace OrderMatchingEngineTests.UnitTests
         public void Init()
         {
             m_Instrument = new Instrument("MSFT");
-            m_BuyOrders = new BuyOrders();
+            m_BuyOrders = new BuyOrders(m_Instrument);
 
             for(int i= 0, j = 10 ; i < 10; ++i, ++j)
             {

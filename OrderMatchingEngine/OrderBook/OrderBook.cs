@@ -6,11 +6,11 @@ using System.Threading;
 
 namespace OrderMatchingEngine.OrderBook
 {
-    partial class OrderBook
+    public class OrderBook
     {
 
-        private Orders m_BuyOrders = new BuyOrders();
-        private Orders m_SellOrders = new SellOrders();
+        private Orders m_BuyOrders;
+        private Orders m_SellOrders;
         //private System.Collections.Concurrent.ConcurrentQueue<Order> m_IncomingOrders = new System.Collections.Concurrent.ConcurrentQueue<Order>();
         private Trades m_Trades = new Trades();
 
