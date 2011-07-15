@@ -49,6 +49,19 @@ namespace OrderMatchingEngineTests.UnitTests
             }
         }
 
+        [Test]
+        public void WrongOrderTypeThrowsException()
+        {
+            var order = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, 0, 0);
 
+            Assert.Throws<ArgumentException>(() => m_SellOrders.Insert(order));
+        }
+        [Test]
+        public void WrongInstrumentThrowsException()
+        {
+            var order = new EquityOrder(new Instrument("WRONG"), Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, 0, 0);
+
+            Assert.Throws<ArgumentException>(() => m_SellOrders.Insert(order));
+        }
     }
 }

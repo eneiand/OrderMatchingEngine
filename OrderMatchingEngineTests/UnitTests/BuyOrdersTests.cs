@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using OrderMatchingEngine;
@@ -49,6 +47,19 @@ namespace OrderMatchingEngineTests.UnitTests
             }
         }
 
+        [Test]
+        public void WrongOrderTypeThrowsException()
+        {
+            var order = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, 0, 0);
 
+            Assert.Throws<ArgumentException>(() => m_BuyOrders.Insert(order));
+        }
+        [Test]
+        public void WrongInstrumentThrowsException()
+        {
+            var order = new EquityOrder(new Instrument("WRONG"), Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, 0, 0);
+
+            Assert.Throws<ArgumentException>(() => m_BuyOrders.Insert(order));
+        }
     }
 }

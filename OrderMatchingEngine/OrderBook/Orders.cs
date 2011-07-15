@@ -6,18 +6,19 @@ namespace OrderMatchingEngine.OrderBook
 {
     public abstract class Orders : IEnumerable<Order>
     {
+        public Instrument Instrument { get; private set; }
         private readonly List<Order> m_Orders = new List<Order>();
         private readonly Object m_Locker = new object();
         private readonly Comparison<Order> m_OrderSorter;
-        private readonly Instrument m_Instrument;
+
 
         protected Orders(Instrument instrument, Comparison<Order> orderSorter)
         {
             if (instrument == null) throw new ArgumentNullException("instrument");
             if (orderSorter == null) throw new ArgumentNullException("orderSorter");
 
+            Instrument = instrument;
             m_OrderSorter = orderSorter;
-            m_Instrument = instrument;
         }
 
         public  void Insert(Order order)
@@ -35,7 +36,7 @@ namespace OrderMatchingEngine.OrderBook
 
         private bool OrderIsForThisList(Order order)
         {
-            return order.Instrument == this.m_Instrument && OrderIsCorrectType(order);
+            return order.Instrument == this.Instrument && OrderIsCorrectType(order);
         }
 
         protected abstract bool OrderIsCorrectType(Order order);
@@ -50,6 +51,7 @@ namespace OrderMatchingEngine.OrderBook
             return -1 * x.Price.CompareTo(y.Price);
         }
 
+
         public IEnumerator<Order> GetEnumerator()
         {
             List<Order> ordersCopy;
@@ -63,6 +65,11 @@ namespace OrderMatchingEngine.OrderBook
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public Order this[int i]
+        {
+            get { return this.m_Orders[i]; }
         }
     }
 

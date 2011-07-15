@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,23 +9,63 @@ namespace OrderMatchingEngine.OrderBook
 {
     public class OrderBook
     {
+        private OrderProcessor m_OrderProcessingStrategy;
 
-        private Orders m_BuyOrders;
-        private Orders m_SellOrders;
-        //private System.Collections.Concurrent.ConcurrentQueue<Order> m_IncomingOrders = new System.Collections.Concurrent.ConcurrentQueue<Order>();
-        private Trades m_Trades = new Trades();
+        public Instrument Instrument { get; private set; }
+        public BuyOrders BuyOrders { get; private set; }
+        public SellOrders SellOrders { get; private set; }
+        public Trades Trades { get; private set; }
+        public OrderProcessor OrderProcessingStrategy
+        {
+            get { return m_OrderProcessingStrategy; }
+            set
+            {
+                DedicatedThreadOrderProcessor dedicatedThreadOrderProcessor =
+                    m_OrderProcessingStrategy as DedicatedThreadOrderProcessor;
 
-        private OrderProcessor m_OrderProcessor;
+                if (dedicatedThreadOrderProcessor != null)
+                    dedicatedThreadOrderProcessor.Stop = true;
+
+                m_OrderProcessingStrategy = value;
+            }
+        }
+
+        public OrderBook(Instrument instrument, BuyOrders buyOrders, SellOrders sellOrders, Trades trades, OrderProcessor orderProcessingStrategy)
+        {
+            if (instrument == null) throw new ArgumentNullException("instrument");
+            if (buyOrders == null) throw new ArgumentNullException("buyOrders");
+            if (sellOrders == null) throw new ArgumentNullException("sellOrders");
+            if (trades == null) throw new ArgumentNullException("trades");
+            if (orderProcessingStrategy == null) throw new ArgumentNullException("orderProcessingStrategy");
+            if( !(instrument == buyOrders.Instrument && instrument == sellOrders.Instrument)) throw new ArgumentException("instrument does not match buyOrders and sellOrders instrument");
+
+            Instrument = instrument;
+            BuyOrders = buyOrders;
+            SellOrders = sellOrders;
+            Trades = trades;
+            OrderProcessingStrategy = orderProcessingStrategy;
+        }
+
+        public OrderBook(Instrument instrument): this(instrument, new BuyOrders(instrument), new SellOrders(instrument), new Trades())
+        {}
+
+        public OrderBook(Instrument instrument, BuyOrders buyOrders, SellOrders sellOrders, Trades trades): this(instrument, buyOrders, sellOrders, trades, new SynchronousOrderProcessor(buyOrders, sellOrders, trades))
+        {}
+
+        public void InsertOrder(Order order)
+        {
+            this.OrderProcessingStrategy.InsertOrder(order);
+        }
+
 
 
         public abstract class OrderProcessor
         {
-            protected Orders m_BuyOrders;
-            protected Orders m_SellOrders;
-            //protected System.Collections.Concurrent.ConcurrentQueue<Order> m_IncomingOrders;
+            protected BuyOrders m_BuyOrders;
+            protected SellOrders m_SellOrders;
             protected Trades m_Trades;
 
-            public OrderProcessor(Orders buyOrders, Orders sellOrders, Trades trades)
+            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
             {
                 m_BuyOrders = buyOrders;
                 m_SellOrders = sellOrders;
@@ -35,14 +76,23 @@ namespace OrderMatchingEngine.OrderBook
 
             protected void ProcessOrder(Order order)
             {
-                Orders orders = order.BuySell == Order.BuyOrSell.Buy ? m_BuyOrders : m_SellOrders;
-                orders.Insert(order);
+                switch (order.BuySell)
+                {
+                    case Order.BuyOrSell.Buy:
+                        m_BuyOrders.Insert(order);
+                        break;
+                    case Order.BuyOrSell.Sell:
+                        m_SellOrders.Insert(order);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
         }
 
         public class SynchronousOrderProcessor : OrderProcessor
         {
-            public SynchronousOrderProcessor(Orders buyOrders, Orders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades) { }
+            public SynchronousOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades) { }
 
             public override void InsertOrder(Order order)
             {
@@ -50,18 +100,59 @@ namespace OrderMatchingEngine.OrderBook
             }
         }
 
-        public class PooledOrderProcessor : OrderProcessor
+        public class ThreadPooledOrderProcessor : OrderProcessor
         {
-            public PooledOrderProcessor(Orders buyOrders, Orders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades) { }
-
+            public ThreadPooledOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades) { }
 
             public override void InsertOrder(Order order)
             {
-                ThreadPool.QueueUserWorkItem((o) => {
-                        ProcessOrder(order);
-                    }
-                );
+                ThreadPool.QueueUserWorkItem((o) => ProcessOrder(order));
             }
+        }
+
+        public class DedicatedThreadOrderProcessor : OrderProcessor
+        {
+            private Thread m_Thread;
+            private AutoResetEvent m_OrderReceivedEvent = new AutoResetEvent(false);
+            private ConcurrentQueue<Order> m_PendingOrders = new ConcurrentQueue<Order>();
+
+            public DedicatedThreadOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades)
+            {
+                m_Thread = new Thread(new ThreadStart(StartProcessingOrders));
+                m_Thread.Start();
+            }
+
+            private void StartProcessingOrders()
+            {
+                while(!Stop)
+                {
+                    m_OrderReceivedEvent.WaitOne();
+                    ProcessOrders();
+                }
+
+                //make sure to finish any pending orders 
+                ProcessOrders();
+            }
+
+            private void ProcessOrders()
+            {
+                while (m_PendingOrders.Count > 0)
+                {
+                    Order order;
+                    m_PendingOrders.TryDequeue(out order);
+
+                    ProcessOrder(order);
+                }
+            }
+
+            public bool Stop { get; set; }
+
+            public override void InsertOrder(Order order)
+            {
+                m_PendingOrders.Enqueue(order);
+                m_OrderReceivedEvent.Set();
+            }
+
         }
     }
 }
