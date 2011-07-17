@@ -7,10 +7,10 @@ namespace OrderMatchingEngine.OrderBook
     public abstract class Orders : IEnumerable<Order>
     {
         public Instrument Instrument { get; private set; }
+        
         private readonly List<Order> m_Orders = new List<Order>();
         private readonly Object m_Locker = new object();
         private readonly Comparison<Order> m_OrderSorter;
-
 
         protected Orders(Instrument instrument, Comparison<Order> orderSorter)
         {
@@ -51,6 +51,15 @@ namespace OrderMatchingEngine.OrderBook
             return -1 * x.Price.CompareTo(y.Price);
         }
 
+
+        public IEnumerable<Order> FindAll(Predicate<Order> filter)
+        {
+            List<Order> foundOrders;
+            lock(m_Locker)
+                foundOrders = this.m_Orders.FindAll(filter);
+
+            return foundOrders;
+        }
 
         public IEnumerator<Order> GetEnumerator()
         {

@@ -25,6 +25,8 @@ namespace OrderMatchingEngine
         }
 
         private static Int64 GlobalOrderId;
+        private UInt64 m_Quantity;
+        private Object m_Locker;
 
         protected Order()
         {
@@ -47,7 +49,7 @@ namespace OrderMatchingEngine
         public BuyOrSell BuySell { get; private set; }
         public OrderTypes OrderType { get; private set; }
         public Decimal Price { get; private set; }
-        public UInt64 Quantity { get; private set; }
+        public UInt64 Quantity { get { lock (m_Locker) return m_Quantity; } set { lock (m_Locker) m_Quantity = value; } }
         public Instrument Instrument { get; private set; }
         public DateTime CreationTime { get; private set; }
         public Int64 Id { get; private set; }

@@ -11,10 +11,12 @@ namespace OrderMatchingEngine.OrderBook
     {
         private OrderProcessor m_OrderProcessingStrategy;
 
+
         public Instrument Instrument { get; private set; }
         public BuyOrders BuyOrders { get; private set; }
         public SellOrders SellOrders { get; private set; }
         public Trades Trades { get; private set; }
+
         public OrderProcessor OrderProcessingStrategy
         {
             get { return m_OrderProcessingStrategy; }
@@ -30,14 +32,16 @@ namespace OrderMatchingEngine.OrderBook
             }
         }
 
-        public OrderBook(Instrument instrument, BuyOrders buyOrders, SellOrders sellOrders, Trades trades, OrderProcessor orderProcessingStrategy)
+        public OrderBook(Instrument instrument, BuyOrders buyOrders, SellOrders sellOrders, Trades trades,
+                         OrderProcessor orderProcessingStrategy)
         {
             if (instrument == null) throw new ArgumentNullException("instrument");
             if (buyOrders == null) throw new ArgumentNullException("buyOrders");
             if (sellOrders == null) throw new ArgumentNullException("sellOrders");
             if (trades == null) throw new ArgumentNullException("trades");
             if (orderProcessingStrategy == null) throw new ArgumentNullException("orderProcessingStrategy");
-            if( !(instrument == buyOrders.Instrument && instrument == sellOrders.Instrument)) throw new ArgumentException("instrument does not match buyOrders and sellOrders instrument");
+            if (!(instrument == buyOrders.Instrument && instrument == sellOrders.Instrument))
+                throw new ArgumentException("instrument does not match buyOrders and sellOrders instrument");
 
             Instrument = instrument;
             BuyOrders = buyOrders;
@@ -46,11 +50,16 @@ namespace OrderMatchingEngine.OrderBook
             OrderProcessingStrategy = orderProcessingStrategy;
         }
 
-        public OrderBook(Instrument instrument): this(instrument, new BuyOrders(instrument), new SellOrders(instrument), new Trades())
-        {}
+        public OrderBook(Instrument instrument)
+            : this(instrument, new BuyOrders(instrument), new SellOrders(instrument), new Trades())
+        {
+        }
 
-        public OrderBook(Instrument instrument, BuyOrders buyOrders, SellOrders sellOrders, Trades trades): this(instrument, buyOrders, sellOrders, trades, new SynchronousOrderProcessor(buyOrders, sellOrders, trades))
-        {}
+        public OrderBook(Instrument instrument, BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
+            : this(
+                instrument, buyOrders, sellOrders, trades, new SynchronousOrderProcessor(buyOrders, sellOrders, trades))
+        {
+        }
 
         public void InsertOrder(Order order)
         {
@@ -61,16 +70,57 @@ namespace OrderMatchingEngine.OrderBook
 
         public abstract class OrderProcessor
         {
+            protected static bool TryMatchOrder(Order order, Orders orders)
+            {
+                IEnumerable<Order> candidateOrders = order.BuySell == Order.BuyOrSell.Buy
+                                                         ? orders.FindAll(o => o.Price <= order.Price)
+                                                         : orders.FindAll(o => o.Price >= order.Price);
+                    
+                    //foreach (var candidateOrder in candidateOrders)
+                    //{
+                    //    if (order.Quantity > 0)
+                    //    {
+                    //        var quantity = candidateOrder.Quantity;
+
+                    //        candidateOrder.Quantity -= order.Quantity;
+                    //        order.Quantity -= quantity;
+                    //    }
+                    //    else
+                    //    {
+                    //        return true;
+                    //    }
+                    //}
+                    //return true;
+                return true;
+
+            }
+
             protected BuyOrders m_BuyOrders;
             protected SellOrders m_SellOrders;
             protected Trades m_Trades;
 
-            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
+            public Func<Order, Orders, bool> TryMatchBuyOrder { get; set; }
+            public Func<Order, Orders, bool> TryMatchSellOrder { get; set; }
+
+
+
+            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades, Func<Order, Orders, bool> tryMatchBuyOrder, Func<Order, Orders, bool> tryMatchSellOrder)
             {
                 m_BuyOrders = buyOrders;
                 m_SellOrders = sellOrders;
                 m_Trades = trades;
+                TryMatchBuyOrder = tryMatchBuyOrder;
+                TryMatchSellOrder = tryMatchSellOrder;
             }
+
+            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
+                : this(buyOrders, sellOrders, trades,
+                    TryMatchOrder,
+                    TryMatchOrder)
+            {
+
+            }
+
 
             public abstract void InsertOrder(Order order);
 
@@ -79,20 +129,26 @@ namespace OrderMatchingEngine.OrderBook
                 switch (order.BuySell)
                 {
                     case Order.BuyOrSell.Buy:
-                        m_BuyOrders.Insert(order);
+                        if (!TryMatchBuyOrder(order, this.m_SellOrders))
+                            m_BuyOrders.Insert(order);
                         break;
                     case Order.BuyOrSell.Sell:
-                        m_SellOrders.Insert(order);
+                        if (!TryMatchSellOrder(order, this.m_BuyOrders))
+                            m_SellOrders.Insert(order);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
+
         }
 
-        public class SynchronousOrderProcessor : OrderProcessor
+        public class SynchronousOrderProcessor : OrderBook.OrderProcessor
         {
-            public SynchronousOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades) { }
+            public SynchronousOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
+                : base(buyOrders, sellOrders, trades)
+            {
+            }
 
             public override void InsertOrder(Order order)
             {
@@ -100,9 +156,12 @@ namespace OrderMatchingEngine.OrderBook
             }
         }
 
-        public class ThreadPooledOrderProcessor : OrderProcessor
+        public class ThreadPooledOrderProcessor : OrderBook.OrderProcessor
         {
-            public ThreadPooledOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades) { }
+            public ThreadPooledOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
+                : base(buyOrders, sellOrders, trades)
+            {
+            }
 
             public override void InsertOrder(Order order)
             {
@@ -110,13 +169,14 @@ namespace OrderMatchingEngine.OrderBook
             }
         }
 
-        public class DedicatedThreadOrderProcessor : OrderProcessor
+        public class DedicatedThreadOrderProcessor : OrderBook.OrderProcessor
         {
             private Thread m_Thread;
             private AutoResetEvent m_OrderReceivedEvent = new AutoResetEvent(false);
             private ConcurrentQueue<Order> m_PendingOrders = new ConcurrentQueue<Order>();
 
-            public DedicatedThreadOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades) : base(buyOrders, sellOrders, trades)
+            public DedicatedThreadOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
+                : base(buyOrders, sellOrders, trades)
             {
                 m_Thread = new Thread(new ThreadStart(StartProcessingOrders));
                 m_Thread.Start();
@@ -124,7 +184,7 @@ namespace OrderMatchingEngine.OrderBook
 
             private void StartProcessingOrders()
             {
-                while(!Stop)
+                while (!Stop)
                 {
                     m_OrderReceivedEvent.WaitOne();
                     ProcessOrders();
@@ -155,4 +215,5 @@ namespace OrderMatchingEngine.OrderBook
 
         }
     }
+
 }
