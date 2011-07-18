@@ -10,7 +10,7 @@ namespace OrderMatchingEngine.OrderBook
     public class OrderBook
     {
         private OrderProcessor m_OrderProcessingStrategy;
-
+        private Object m_Locker = new Object();
 
         public Instrument Instrument { get; private set; }
         public BuyOrders BuyOrders { get; private set; }
@@ -22,13 +22,16 @@ namespace OrderMatchingEngine.OrderBook
             get { return m_OrderProcessingStrategy; }
             set
             {
-                DedicatedThreadOrderProcessor dedicatedThreadOrderProcessor =
-                    m_OrderProcessingStrategy as DedicatedThreadOrderProcessor;
+                
+                lock(m_Locker)
+                {
+                    DedicatedThreadOrderProcessor dedicatedThreadOrderProcessor = m_OrderProcessingStrategy as DedicatedThreadOrderProcessor;
 
-                if (dedicatedThreadOrderProcessor != null)
-                    dedicatedThreadOrderProcessor.Stop = true;
+                    if (dedicatedThreadOrderProcessor != null)
+                        dedicatedThreadOrderProcessor.Stop();
 
-                m_OrderProcessingStrategy = value;
+                    m_OrderProcessingStrategy = value;
+                }
             }
         }
 
@@ -63,7 +66,9 @@ namespace OrderMatchingEngine.OrderBook
 
         public void InsertOrder(Order order)
         {
-            this.OrderProcessingStrategy.InsertOrder(order);
+            //the strategy can change at runtime so lock here and in OrderProcessingStrategy property
+            lock(m_Locker)
+                this.OrderProcessingStrategy.InsertOrder(order);
         }
 
 
@@ -91,7 +96,7 @@ namespace OrderMatchingEngine.OrderBook
                     //    }
                     //}
                     //return true;
-                return true;
+                return false;
 
             }
 
@@ -171,46 +176,33 @@ namespace OrderMatchingEngine.OrderBook
 
         public class DedicatedThreadOrderProcessor : OrderBook.OrderProcessor
         {
-            private Thread m_Thread;
-            private AutoResetEvent m_OrderReceivedEvent = new AutoResetEvent(false);
-            private ConcurrentQueue<Order> m_PendingOrders = new ConcurrentQueue<Order>();
+            private readonly Thread m_Thread;
+            private readonly BlockingCollection<Order> m_PendingOrders = new BlockingCollection<Order>();
 
             public DedicatedThreadOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
                 : base(buyOrders, sellOrders, trades)
             {
-                m_Thread = new Thread(new ThreadStart(StartProcessingOrders));
+                m_Thread = new Thread(ProcessOrders);
                 m_Thread.Start();
             }
 
-            private void StartProcessingOrders()
-            {
-                while (!Stop)
-                {
-                    m_OrderReceivedEvent.WaitOne();
-                    ProcessOrders();
-                }
-
-                //make sure to finish any pending orders 
-                ProcessOrders();
-            }
 
             private void ProcessOrders()
             {
-                while (m_PendingOrders.Count > 0)
+                foreach (var order in m_PendingOrders.GetConsumingEnumerable())
                 {
-                    Order order;
-                    m_PendingOrders.TryDequeue(out order);
-
                     ProcessOrder(order);
                 }
             }
 
-            public bool Stop { get; set; }
+            public void Stop()
+            {
+                this.m_PendingOrders.CompleteAdding();
+            }
 
             public override void InsertOrder(Order order)
             {
-                m_PendingOrders.Enqueue(order);
-                m_OrderReceivedEvent.Set();
+                m_PendingOrders.Add(order);
             }
 
         }

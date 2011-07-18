@@ -26,7 +26,7 @@ namespace OrderMatchingEngine
 
         private static Int64 GlobalOrderId;
         private UInt64 m_Quantity;
-        private Object m_Locker;
+        private Object m_Locker = new object();
 
         protected Order()
         {

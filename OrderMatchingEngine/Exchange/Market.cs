@@ -8,7 +8,8 @@ namespace OrderMatchingEngine.Exchange
 {
     class Market
     {
-        private ConcurrentDictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
+         
+        private readonly ConcurrentDictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
 
         public Market(IEnumerable<KeyValuePair<Instrument, OrderBook.OrderBook>> orderBooks)
         {
@@ -52,5 +53,7 @@ namespace OrderMatchingEngine.Exchange
             {
             }
         }
+
+        
     }
 }
