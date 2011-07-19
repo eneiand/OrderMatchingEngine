@@ -78,7 +78,11 @@ namespace OrderMatchingEngine.OrderBook
 
         public Order this[int i]
         {
-            get { return this.m_Orders[i]; }
+            get
+            {
+                lock(this.m_Locker)
+                    return this.m_Orders[i];
+            }
         }
     }
 

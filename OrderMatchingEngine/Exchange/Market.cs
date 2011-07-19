@@ -6,33 +6,43 @@ using System.Text;
 
 namespace OrderMatchingEngine.Exchange
 {
-    class Market
+    public class Market
     {
          
-        private readonly ConcurrentDictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
+        private readonly Dictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
 
-        public Market(IEnumerable<KeyValuePair<Instrument, OrderBook.OrderBook>> orderBooks)
+        public Market(IDictionary<Instrument, OrderBook.OrderBook> orderBooks)
         {
             if (orderBooks == null) throw new ArgumentNullException("orderBooks");
 
-            m_OrderBooks = new ConcurrentDictionary<Instrument, OrderBook.OrderBook>(orderBooks);
+            m_OrderBooks = new Dictionary<Instrument, OrderBook.OrderBook>(orderBooks);
+        }
+
+        public OrderBook.OrderBook this[Instrument instrument]
+        {
+            get
+            {
+                if(instrument == null) throw new ArgumentNullException("instrument");
+
+                OrderBook.OrderBook orderBook;
+
+                if (this.m_OrderBooks.TryGetValue(instrument, out orderBook))
+                {
+                    return orderBook;
+                }
+                else
+                {
+                    throw new InstrumentNotInThisMarketException();
+                }
+            }
         }
 
         public void SubmitOrder(Order order)
         {
             if (order == null) throw new ArgumentNullException("order");
 
-            OrderBook.OrderBook orderBook;
-
-            if(this.m_OrderBooks.TryGetValue(order.Instrument, out orderBook))
-            {
-                orderBook.InsertOrder(order);
-            }
-            else
-            {
-                throw new InstrumentNotInThisMarketException();
-            }
-
+            OrderBook.OrderBook orderBook = this[order.Instrument];
+            orderBook.InsertOrder(order);
         }
 
         public class MarketName
