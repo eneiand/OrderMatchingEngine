@@ -22,8 +22,8 @@ namespace OrderMatchingEngine.OrderBook
             get { return m_OrderProcessingStrategy; }
             set
             {
-                
-                lock(m_Locker)
+
+                lock (m_Locker)
                 {
                     DedicatedThreadOrderProcessor dedicatedThreadOrderProcessor = m_OrderProcessingStrategy as DedicatedThreadOrderProcessor;
 
@@ -54,7 +54,7 @@ namespace OrderMatchingEngine.OrderBook
         }
 
         public OrderBook(Instrument instrument)
-            : this(instrument, new BuyOrders(instrument), new SellOrders(instrument), new Trades())
+            : this(instrument, new BuyOrders(instrument), new SellOrders(instrument), new Trades(instrument))
         {
         }
 
@@ -66,36 +66,45 @@ namespace OrderMatchingEngine.OrderBook
 
         public void InsertOrder(Order order)
         {
+            if (order == null) throw new ArgumentNullException("order");
+            if (order.Instrument != this.Instrument)
+                throw new OrderIsNotForThisBookException();
+
             //the strategy can change at runtime so lock here and in OrderProcessingStrategy property
-            lock(m_Locker)
+            lock (m_Locker)
                 this.OrderProcessingStrategy.InsertOrder(order);
         }
 
-
+        public class OrderIsNotForThisBookException : Exception
+        {
+        }
 
         public abstract class OrderProcessor
         {
-            protected static bool TryMatchOrder(Order order, Orders orders)
+            public delegate bool OrderMatcher(Order order, Orders orders, out Trade createdTrade);
+
+            protected static bool TryMatchOrder(Order order, Orders orders, out Trade createdTrade)
             {
                 IEnumerable<Order> candidateOrders = order.BuySell == Order.BuyOrSell.Buy
                                                          ? orders.FindAll(o => o.Price <= order.Price)
                                                          : orders.FindAll(o => o.Price >= order.Price);
-                    
-                    //foreach (var candidateOrder in candidateOrders)
-                    //{
-                    //    if (order.Quantity > 0)
-                    //    {
-                    //        var quantity = candidateOrder.Quantity;
 
-                    //        candidateOrder.Quantity -= order.Quantity;
-                    //        order.Quantity -= quantity;
-                    //    }
-                    //    else
-                    //    {
-                    //        return true;
-                    //    }
-                    //}
-                    //return true;
+                //foreach (var candidateOrder in candidateOrders)
+                //{
+                //    if (order.Quantity > 0)
+                //    {
+                //        var quantity = candidateOrder.Quantity;
+
+                //        candidateOrder.Quantity -= order.Quantity;
+                //        order.Quantity -= quantity;
+                //    }
+                //    else
+                //    {
+                //        return true;
+                //    }
+                //}
+                //return true;
+                createdTrade = null;
                 return false;
 
             }
@@ -104,12 +113,12 @@ namespace OrderMatchingEngine.OrderBook
             protected SellOrders m_SellOrders;
             protected Trades m_Trades;
 
-            public Func<Order, Orders, bool> TryMatchBuyOrder { get; set; }
-            public Func<Order, Orders, bool> TryMatchSellOrder { get; set; }
+            public OrderMatcher TryMatchBuyOrder { get; set; }
+            public OrderMatcher TryMatchSellOrder { get; set; }
 
 
 
-            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades, Func<Order, Orders, bool> tryMatchBuyOrder, Func<Order, Orders, bool> tryMatchSellOrder)
+            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades, OrderMatcher tryMatchBuyOrder, OrderMatcher tryMatchSellOrder)
             {
                 m_BuyOrders = buyOrders;
                 m_SellOrders = sellOrders;
@@ -131,19 +140,24 @@ namespace OrderMatchingEngine.OrderBook
 
             protected void ProcessOrder(Order order)
             {
+                Trade trade = null;
+
                 switch (order.BuySell)
                 {
                     case Order.BuyOrSell.Buy:
-                        if (!TryMatchBuyOrder(order, this.m_SellOrders))
+                        if (!TryMatchBuyOrder(order, this.m_SellOrders, out trade))
                             m_BuyOrders.Insert(order);
                         break;
                     case Order.BuyOrSell.Sell:
-                        if (!TryMatchSellOrder(order, this.m_BuyOrders))
+                        if (!TryMatchSellOrder(order, this.m_BuyOrders, out trade))
                             m_SellOrders.Insert(order);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+
+                if (trade != null)
+                    this.m_Trades.AddTrade(trade);
             }
 
         }
@@ -207,5 +221,6 @@ namespace OrderMatchingEngine.OrderBook
 
         }
     }
+
 
 }

@@ -27,7 +27,7 @@ namespace OrderMatchingEngineTests.UnitTests
         {
             var trade = new Trade(m_Instrument, 100UL, 100.10M);
             m_Trades.AddTrade(trade);
-            
+
             Assert.That(((Trades.InMemoryTradeProcessor)m_Trades.TradeProcessingStrategy).Trades[0], Is.EqualTo(trade));
         }
     }

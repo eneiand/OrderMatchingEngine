@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using OrderMatchingEngine;
@@ -24,7 +22,7 @@ namespace OrderMatchingEngineTests.UnitTests
             m_OrderBook = new OrderBook(m_Instrument);
             var orderBooks = new Dictionary<Instrument, OrderBook>();
             orderBooks[m_Instrument] = m_OrderBook;
-            m_Market =  new Market(orderBooks);
+            m_Market = new Market(orderBooks);
         }
 
         [Test]
@@ -76,7 +74,7 @@ namespace OrderMatchingEngineTests.UnitTests
 
         private IEnumerable<Order> Orders()
         {
-            for(int i=0; i < 2; ++i)
+            for (int i = 0; i < 2; ++i)
                 yield return new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, i, (ulong)i);
 
             for (int i = 0; i < 2; ++i)

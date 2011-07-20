@@ -10,7 +10,8 @@ namespace OrderMatchingEngine
     {
         private static Int64 GlobalTradeId;
 
-        public Trade(Instrument instrument, UInt64 quantity, Decimal price) : this()
+        public Trade(Instrument instrument, UInt64 quantity, Decimal price)
+            : this()
         {
             if (instrument == null) throw new ArgumentNullException("instrument");
 
@@ -30,5 +31,12 @@ namespace OrderMatchingEngine
         public Decimal Price { get; private set; }
         public Int64 Id { get; private set; }
         public DateTime CreationTime { get; private set; }
+
+        public override string ToString()
+        {
+            StringBuilder s = new StringBuilder(Instrument.Symbol);
+            s.AppendFormat(" {0} {1} ", this.Quantity, this.Price);
+            return s.ToString();
+        }
     }
 }

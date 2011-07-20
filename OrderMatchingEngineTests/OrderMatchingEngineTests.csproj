@@ -49,6 +49,7 @@
     <Compile Include="UnitTests\MarketTests.cs" />
     <Compile Include="UnitTests\OrderBookTests.cs" />
     <Compile Include="UnitTests\SellOrdersTests.cs" />
+    <Compile Include="UnitTests\TradesTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OrderMatchingEngine\OrderMatchingEngine.csproj">

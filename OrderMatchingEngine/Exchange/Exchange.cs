@@ -6,13 +6,13 @@ namespace OrderMatchingEngine.Exchange
 {
     class Exchange
     {
-        private ConcurrentDictionary<Market.MarketName, Market> m_Markets;
+        private Dictionary<Market.MarketName, Market> m_Markets;
 
-        public Exchange(IEnumerable<KeyValuePair<Market.MarketName, Market>> markets)
+        public Exchange(IDictionary<Market.MarketName, Market> markets)
         {
             if (markets == null) throw new ArgumentNullException("markets");
 
-            m_Markets = new ConcurrentDictionary<Market.MarketName, Market>(markets);
+            m_Markets = new Dictionary<Market.MarketName, Market>(markets);
         }
 
         public Market this[Market.MarketName marketName]

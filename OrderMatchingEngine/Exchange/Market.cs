@@ -8,7 +8,7 @@ namespace OrderMatchingEngine.Exchange
 {
     public class Market
     {
-         
+
         private readonly Dictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
 
         public Market(IDictionary<Instrument, OrderBook.OrderBook> orderBooks)
@@ -22,7 +22,7 @@ namespace OrderMatchingEngine.Exchange
         {
             get
             {
-                if(instrument == null) throw new ArgumentNullException("instrument");
+                if (instrument == null) throw new ArgumentNullException("instrument");
 
                 OrderBook.OrderBook orderBook;
 
@@ -59,11 +59,12 @@ namespace OrderMatchingEngine.Exchange
 
         public class InstrumentNotInThisMarketException : Exception
         {
-            public InstrumentNotInThisMarketException(): base("instrument does not have an orderbook in this market")
+            public InstrumentNotInThisMarketException()
+                : base("instrument does not have an orderbook in this market")
             {
             }
         }
 
-        
+
     }
 }

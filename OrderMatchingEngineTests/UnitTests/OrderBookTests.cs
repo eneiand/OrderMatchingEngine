@@ -21,7 +21,7 @@ namespace OrderMatchingEngineTests.UnitTests
             m_Instrument = new Instrument("MSFT");
             m_BuyOrders = new BuyOrders(m_Instrument);
             m_SellOrders = new SellOrders(m_Instrument);
-            m_Trades = new Trades();
+            m_Trades = new Trades(m_Instrument);
 
             m_OrderBook = new OrderBook(m_Instrument, m_BuyOrders, m_SellOrders, m_Trades);
 
@@ -41,7 +41,7 @@ namespace OrderMatchingEngineTests.UnitTests
             Assert.That(m_OrderBook.SellOrders[0], Is.EqualTo(m_Orders[1]));
         }
 
-        [Test, Timeout(200)]
+        [Test, Timeout(500)]
         public void InsertOrderPoolTest()
         {
             m_OrderBook.OrderProcessingStrategy = new OrderBook.ThreadPooledOrderProcessor(m_BuyOrders, m_SellOrders, m_Trades);
@@ -58,13 +58,13 @@ namespace OrderMatchingEngineTests.UnitTests
             {
                 buys = new List<Order>(m_BuyOrders);
                 sells = new List<Order>(m_SellOrders);
-            } while (buys.Count == 0  || sells.Count == 0); //spin wait for thread pool
+            } while (buys.Count == 0 || sells.Count == 0); //spin wait for thread pool
 
             Assert.That(m_OrderBook.BuyOrders[0], Is.EqualTo(m_Orders[0]));
             Assert.That(m_OrderBook.SellOrders[0], Is.EqualTo(m_Orders[1]));
         }
 
-        [Test, Timeout(200)]
+        [Test, Timeout(500)]
         public void InsertOrderDedicatedThreadTest()
         {
             m_OrderBook.OrderProcessingStrategy = new OrderBook.DedicatedThreadOrderProcessor(m_BuyOrders, m_SellOrders, m_Trades);

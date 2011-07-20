@@ -7,7 +7,7 @@ namespace OrderMatchingEngine.OrderBook
     public abstract class Orders : IEnumerable<Order>
     {
         public Instrument Instrument { get; private set; }
-        
+
         private readonly List<Order> m_Orders = new List<Order>();
         private readonly Object m_Locker = new object();
         private readonly Comparison<Order> m_OrderSorter;
@@ -21,10 +21,10 @@ namespace OrderMatchingEngine.OrderBook
             m_OrderSorter = orderSorter;
         }
 
-        public  void Insert(Order order)
+        public void Insert(Order order)
         {
             if (order == null) throw new ArgumentNullException("order");
-            if(!OrderIsForThisList(order)) throw new ArgumentException("order is not valid for this Orders instance", "order");
+            if (!OrderIsForThisList(order)) throw new ArgumentException("order is not valid for this Orders instance", "order");
 
 
             lock (m_Locker)
@@ -43,7 +43,7 @@ namespace OrderMatchingEngine.OrderBook
 
         protected static int EarliestTimeFirst(Order x, Order y)
         {
-            return  x.CreationTime.CompareTo(y.CreationTime);
+            return x.CreationTime.CompareTo(y.CreationTime);
         }
 
         protected static int HighestPriceFirst(Order x, Order y)
@@ -55,7 +55,7 @@ namespace OrderMatchingEngine.OrderBook
         public IEnumerable<Order> FindAll(Predicate<Order> filter)
         {
             List<Order> foundOrders;
-            lock(m_Locker)
+            lock (m_Locker)
                 foundOrders = this.m_Orders.FindAll(filter);
 
             return foundOrders;
@@ -64,7 +64,7 @@ namespace OrderMatchingEngine.OrderBook
         public IEnumerator<Order> GetEnumerator()
         {
             List<Order> ordersCopy;
-            lock(m_Locker)
+            lock (m_Locker)
             {
                 ordersCopy = new List<Order>(m_Orders);
             }
@@ -80,7 +80,7 @@ namespace OrderMatchingEngine.OrderBook
         {
             get
             {
-                lock(this.m_Locker)
+                lock (this.m_Locker)
                     return this.m_Orders[i];
             }
         }
@@ -90,12 +90,12 @@ namespace OrderMatchingEngine.OrderBook
     {
         private static int HighestPriceEarliestTimePriority(Order x, Order y)
         {
-                int priceComp = HighestPriceFirst(x, y);
+            int priceComp = HighestPriceFirst(x, y);
 
-                if (priceComp == 0)
-                    return EarliestTimeFirst(x, y);
-            
-                return priceComp;
+            if (priceComp == 0)
+                return EarliestTimeFirst(x, y);
+
+            return priceComp;
         }
 
 
@@ -115,7 +115,7 @@ namespace OrderMatchingEngine.OrderBook
 
             if (priceComp == 0)
                 return EarliestTimeFirst(x, y);
-            
+
             return priceComp;
         }
 
