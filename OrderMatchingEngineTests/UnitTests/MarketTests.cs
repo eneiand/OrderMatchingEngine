@@ -64,7 +64,7 @@ namespace OrderMatchingEngineTests.UnitTests
                 ThreadPool.QueueUserWorkItem((e) => m_Market.SubmitOrder(order1));
             }
 
-            while (m_OrderBook.SellOrders.Count() < 2 && m_OrderBook.BuyOrders.Count() < 2) ;
+            while (m_OrderBook.SellOrders.Count() != 2 && m_OrderBook.BuyOrders.Count() != 2) ;
 
             Assert.That(orders[0], Is.EqualTo(m_OrderBook.BuyOrders[1]));
             Assert.That(orders[1], Is.EqualTo(m_OrderBook.BuyOrders[0]));
@@ -77,7 +77,7 @@ namespace OrderMatchingEngineTests.UnitTests
             for (int i = 0; i < 2; ++i)
                 yield return new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, i, (ulong)i);
 
-            for (int i = 0; i < 2; ++i)
+            for (int i = 2; i < 4; ++i)
                 yield return new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, i, (ulong)i);
 
         }

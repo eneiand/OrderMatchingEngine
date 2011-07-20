@@ -81,36 +81,30 @@ namespace OrderMatchingEngine.OrderBook
 
         public abstract class OrderProcessor
         {
-            public delegate bool OrderMatcher(Order order, Orders orders, out Trade createdTrade);
+            public delegate bool OrderMatcher(Order order, Orders orders, Trades trades);
 
-            public static bool TryMatchOrder(Order order, Orders orders, out Trade createdTrade)
+            public static bool TryMatchOrder(Order order, Orders orders, Trades trades)
             {
-                createdTrade = null;
                 List<Order> candidateOrders = order.BuySell == Order.BuyOrSell.Buy
                                                          ? new List<Order>(orders.FindAll(o => o.Price <= order.Price))
                                                          : new List<Order>(orders.FindAll(o => o.Price >= order.Price));
                 if (candidateOrders.Count == 0)
                     return false;
 
-                ulong total = 0;
-
                 foreach (var candidateOrder in candidateOrders)
                 {
-                        var quantity = candidateOrder.Quantity;
+                    if (order.Quantity == 0)
+                        break;
 
-                        candidateOrder.Quantity -= order.Quantity;
-                        order.Quantity -= quantity;
-                        
-                        total += quantity;
+                    var quantity = (candidateOrder.Quantity >= order.Quantity ? order.Quantity : candidateOrder.Quantity);
 
-                        if(candidateOrder.Quantity == 0)
-                            orders.Remove(candidateOrder);
+                    candidateOrder.Quantity -= quantity;
+                    order.Quantity -= quantity;
 
-                        if(order.Quantity == 0)
-                        {
-                            createdTrade = new Trade(order.Instrument, total, candidateOrder.Price);
-                            break;
-                        }
+                    if (candidateOrder.Quantity == 0)
+                        orders.Remove(candidateOrder);
+
+                    trades.AddTrade(new Trade(order.Instrument, quantity, candidateOrder.Price));
                 }
                 return true;
             }
@@ -146,24 +140,23 @@ namespace OrderMatchingEngine.OrderBook
 
             protected void ProcessOrder(Order order)
             {
-                Trade trade = null;
+               
 
                 switch (order.BuySell)
                 {
                     case Order.BuyOrSell.Buy:
-                        if (!TryMatchBuyOrder(order, this.m_SellOrders, out trade))
+                        if (!TryMatchBuyOrder(order, this.m_SellOrders, m_Trades))
                             m_BuyOrders.Insert(order);
                         break;
                     case Order.BuyOrSell.Sell:
-                        if (!TryMatchSellOrder(order, this.m_BuyOrders, out trade))
+                        if (!TryMatchSellOrder(order, this.m_BuyOrders, m_Trades))
                             m_SellOrders.Insert(order);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
 
-                if (trade != null)
-                    this.m_Trades.AddTrade(trade);
+
             }
 
         }
