@@ -83,30 +83,36 @@ namespace OrderMatchingEngine.OrderBook
         {
             public delegate bool OrderMatcher(Order order, Orders orders, out Trade createdTrade);
 
-            protected static bool TryMatchOrder(Order order, Orders orders, out Trade createdTrade)
+            public static bool TryMatchOrder(Order order, Orders orders, out Trade createdTrade)
             {
-                IEnumerable<Order> candidateOrders = order.BuySell == Order.BuyOrSell.Buy
-                                                         ? orders.FindAll(o => o.Price <= order.Price)
-                                                         : orders.FindAll(o => o.Price >= order.Price);
-
-                //foreach (var candidateOrder in candidateOrders)
-                //{
-                //    if (order.Quantity > 0)
-                //    {
-                //        var quantity = candidateOrder.Quantity;
-
-                //        candidateOrder.Quantity -= order.Quantity;
-                //        order.Quantity -= quantity;
-                //    }
-                //    else
-                //    {
-                //        return true;
-                //    }
-                //}
-                //return true;
                 createdTrade = null;
-                return false;
+                List<Order> candidateOrders = order.BuySell == Order.BuyOrSell.Buy
+                                                         ? new List<Order>(orders.FindAll(o => o.Price <= order.Price))
+                                                         : new List<Order>(orders.FindAll(o => o.Price >= order.Price));
+                if (candidateOrders.Count == 0)
+                    return false;
 
+                ulong total = 0;
+
+                foreach (var candidateOrder in candidateOrders)
+                {
+                        var quantity = candidateOrder.Quantity;
+
+                        candidateOrder.Quantity -= order.Quantity;
+                        order.Quantity -= quantity;
+                        
+                        total += quantity;
+
+                        if(candidateOrder.Quantity == 0)
+                            orders.Remove(candidateOrder);
+
+                        if(order.Quantity == 0)
+                        {
+                            createdTrade = new Trade(order.Instrument, total, candidateOrder.Price);
+                            break;
+                        }
+                }
+                return true;
             }
 
             protected BuyOrders m_BuyOrders;

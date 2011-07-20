@@ -34,6 +34,15 @@ namespace OrderMatchingEngine.OrderBook
             }
         }
 
+        public void Remove(Order order)
+        {
+            if (order == null) throw new ArgumentNullException("order");
+            if (!OrderIsForThisList(order)) throw new ArgumentException("order is not valid for this Orders instance", "order");
+
+            lock (m_Locker)
+                m_Orders.Remove(order);
+        }
+
         private bool OrderIsForThisList(Order order)
         {
             return order.Instrument == this.Instrument && OrderIsCorrectType(order);
