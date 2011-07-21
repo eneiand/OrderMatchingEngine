@@ -73,7 +73,5 @@ namespace OrderMatchingEngine.OrderBook
         public class OrderIsNotForThisBookException : Exception
         {
         }
-
-     
     }
 }
