@@ -35,7 +35,7 @@ namespace OrderMatchingEngine.OrderBook
             : this()
         {
             if (instrument == null) throw new ArgumentNullException("instrument");
-            if (quantity == 0) throw new ArgumentException("order cannot be created with quantity of 0", "quantity");
+            if (quantity <= 0) throw new ArgumentException("order cannot be created with quantity less than or equal to 0", "quantity");
             if (price <= 0) throw new ArgumentException("price cannot be less than or equal to 0", "price");
 
             Instrument = instrument;

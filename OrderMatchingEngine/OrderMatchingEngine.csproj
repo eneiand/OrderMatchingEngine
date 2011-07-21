@@ -42,11 +42,15 @@
   <ItemGroup>
     <Compile Include="Exchange\Exchange.cs" />
     <Compile Include="Exchange\Market.cs" />
+    <Compile Include="OrderBook\OrderProcessing\DedicatedThreadsOrderProcessor.cs" />
     <Compile Include="OrderBook\EquityOrder.cs" />
     <Compile Include="OrderBook\Instrument.cs" />
     <Compile Include="OrderBook\Order.cs" />
     <Compile Include="OrderBook\OrderBook.cs" />
+    <Compile Include="OrderBook\OrderProcessing\OrderProcessor.cs" />
     <Compile Include="OrderBook\Orders.cs" />
+    <Compile Include="OrderBook\OrderProcessing\SynchronousOrderProcessor.cs" />
+    <Compile Include="OrderBook\OrderProcessing\ThreadPooledOrderProcessor.cs" />
     <Compile Include="OrderBook\Trades.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="OrderBook\Trade.cs" />

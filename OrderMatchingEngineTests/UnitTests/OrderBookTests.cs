@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using NUnit.Framework;
 using OrderMatchingEngine.OrderBook;
+using OrderMatchingEngine.OrderBook.OrderProcessing;
 
 namespace OrderMatchingEngineTests.UnitTests
 {
@@ -44,7 +45,7 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test, Timeout(500)]
         public void InsertOrderPoolTest()
         {
-            m_OrderBook.OrderProcessingStrategy = new OrderBook.ThreadPooledOrderProcessor(m_BuyOrders, m_SellOrders,
+            m_OrderBook.OrderProcessingStrategy = new ThreadPooledOrderProcessor(m_BuyOrders, m_SellOrders,
                                                                                            m_Trades);
 
             foreach (Order order in m_Orders)
@@ -67,7 +68,7 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test, Timeout(500)]
         public void InsertOrderDedicatedThreadTest()
         {
-            m_OrderBook.OrderProcessingStrategy = new OrderBook.DedicatedThreadOrderProcessor(m_BuyOrders, m_SellOrders,
+            m_OrderBook.OrderProcessingStrategy = new DedicatedThreadsOrderProcessor(m_BuyOrders, m_SellOrders,
                                                                                               m_Trades);
 
             foreach (Order order in m_Orders)

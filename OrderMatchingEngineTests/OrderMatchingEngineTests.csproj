@@ -48,6 +48,7 @@
     <Compile Include="UnitTests\BuyOrdersTests.cs" />
     <Compile Include="UnitTests\MarketTests.cs" />
     <Compile Include="UnitTests\OrderBookTests.cs" />
+    <Compile Include="UnitTests\OrderMatchingTests.cs" />
     <Compile Include="UnitTests\OrderProcessorTests.cs" />
     <Compile Include="UnitTests\SellOrdersTests.cs" />
     <Compile Include="UnitTests\TradesTests.cs" />

@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
+using OrderMatchingEngine.OrderBook.OrderProcessing;
 
 namespace OrderMatchingEngine.OrderBook
 {
@@ -22,7 +20,7 @@ namespace OrderMatchingEngine.OrderBook
             {
                 lock (m_Locker)
                 {
-                    var dedicatedThreadOrderProcessor = m_OrderProcessingStrategy as DedicatedThreadOrderProcessor;
+                    var dedicatedThreadOrderProcessor = m_OrderProcessingStrategy as DedicatedThreadsOrderProcessor;
 
                     if (dedicatedThreadOrderProcessor != null)
                         dedicatedThreadOrderProcessor.Stop();
@@ -76,141 +74,6 @@ namespace OrderMatchingEngine.OrderBook
         {
         }
 
-        public abstract class OrderProcessor
-        {
-            public delegate bool OrderMatcher(Order order, Orders orders, Trades trades);
-
-            public static bool TryMatchOrder(Order order, Orders orders, Trades trades)
-            {
-                List<Order> candidateOrders = order.BuySell == Order.BuyOrSell.Buy
-                                                  ? new List<Order>(orders.FindAll(o => o.Price <= order.Price))
-                                                  : new List<Order>(orders.FindAll(o => o.Price >= order.Price));
-                if (candidateOrders.Count == 0)
-                    return false;
-
-                foreach (Order candidateOrder in candidateOrders)
-                {
-                    //once an order has been filled completely our job is done
-                    if (order.Quantity == 0)
-                        break;
-
-                    ulong quantity = (candidateOrder.Quantity >= order.Quantity
-                                          ? order.Quantity
-                                          : candidateOrder.Quantity);
-
-                    candidateOrder.Quantity -= quantity;
-                    order.Quantity -= quantity;
-
-                    if (candidateOrder.Quantity == 0)
-                        orders.Remove(candidateOrder);
-
-                    trades.AddTrade(new Trade(order.Instrument, quantity, candidateOrder.Price));
-                }
-                return true;
-            }
-
-            protected BuyOrders m_BuyOrders;
-            protected SellOrders m_SellOrders;
-            protected Trades m_Trades;
-
-            public OrderMatcher TryMatchBuyOrder { get; set; }
-            public OrderMatcher TryMatchSellOrder { get; set; }
-
-
-            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades,
-                                  OrderMatcher tryMatchBuyOrder, OrderMatcher tryMatchSellOrder)
-            {
-                m_BuyOrders = buyOrders;
-                m_SellOrders = sellOrders;
-                m_Trades = trades;
-                TryMatchBuyOrder = tryMatchBuyOrder;
-                TryMatchSellOrder = tryMatchSellOrder;
-            }
-
-            public OrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
-                : this(buyOrders, sellOrders, trades,
-                       TryMatchOrder,
-                       TryMatchOrder)
-            {
-            }
-
-
-            public abstract void InsertOrder(Order order);
-
-            protected void ProcessOrder(Order order)
-            {
-                switch (order.BuySell)
-                {
-                case Order.BuyOrSell.Buy:
-                    TryMatchBuyOrder(order, m_SellOrders, m_Trades);
-                    if (order.Quantity > 0)
-                        m_BuyOrders.Insert(order);
-                    break;
-                case Order.BuyOrSell.Sell:
-                    TryMatchSellOrder(order, m_BuyOrders, m_Trades);
-                    if (order.Quantity > 0)
-                        m_SellOrders.Insert(order);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-                }
-            }
-        }
-
-        public class SynchronousOrderProcessor : OrderProcessor
-        {
-            public SynchronousOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
-                : base(buyOrders, sellOrders, trades)
-            {
-            }
-
-            public override void InsertOrder(Order order)
-            {
-                ProcessOrder(order);
-            }
-        }
-
-        public class ThreadPooledOrderProcessor : OrderProcessor
-        {
-            public ThreadPooledOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
-                : base(buyOrders, sellOrders, trades)
-            {
-            }
-
-            public override void InsertOrder(Order order)
-            {
-                ThreadPool.QueueUserWorkItem((o) => ProcessOrder(order));
-            }
-        }
-
-        public class DedicatedThreadOrderProcessor : OrderProcessor
-        {
-            private readonly Thread m_Thread;
-            private readonly BlockingCollection<Order> m_PendingOrders = new BlockingCollection<Order>();
-
-            public DedicatedThreadOrderProcessor(BuyOrders buyOrders, SellOrders sellOrders, Trades trades)
-                : base(buyOrders, sellOrders, trades)
-            {
-                m_Thread = new Thread(ProcessOrders);
-                m_Thread.Start();
-            }
-
-
-            private void ProcessOrders()
-            {
-                foreach (Order order in m_PendingOrders.GetConsumingEnumerable())
-                    ProcessOrder(order);
-            }
-
-            public void Stop()
-            {
-                m_PendingOrders.CompleteAdding();
-            }
-
-            public override void InsertOrder(Order order)
-            {
-                m_PendingOrders.Add(order);
-            }
-        }
+     
     }
 }
