@@ -12,6 +12,8 @@ namespace OrderMatchingEngine.OrderBook
             : this()
         {
             if (instrument == null) throw new ArgumentNullException("instrument");
+            if(quantity <= 0) throw new ArgumentException("a trade cannot be created with a quantity cannot less than or equal to 0", "quantity");
+            if (price <= 0) throw new ArgumentException("a trade cannot be created with a price cannot less than or equal to 0", "price");
 
             Instrument = instrument;
             Quantity = quantity;

@@ -90,6 +90,7 @@ namespace OrderMatchingEngine.OrderBook
 
                 foreach (Order candidateOrder in candidateOrders)
                 {
+                    //once an order has been filled completely our job is done
                     if (order.Quantity == 0)
                         break;
 
