@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using NUnit.Framework;
-using OrderMatchingEngine;
 using OrderMatchingEngine.OrderBook;
 
 namespace OrderMatchingEngineTests.UnitTests
 {
     [TestFixture]
-    class OrderProcessorTests
+    internal class OrderProcessorTests
     {
         private EquityOrder m_BuyOrder, m_SellOrder;
         private Instrument m_Instrument;
@@ -22,8 +18,10 @@ namespace OrderMatchingEngineTests.UnitTests
         public void Init()
         {
             m_Instrument = new Instrument("GOOG");
-            m_BuyOrder = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, 100M, 100ul);
-            m_SellOrder = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, 90, 100ul);
+            m_BuyOrder = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, 100M,
+                                         100ul);
+            m_SellOrder = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, 90,
+                                          100ul);
             m_SellOrders = new SellOrders(m_Instrument);
             m_BuyOrders = new BuyOrders(m_Instrument);
             m_SellOrders.Insert(m_SellOrder);
@@ -35,12 +33,11 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test]
         public void MatchBuyOrderTest()
         {
-
-            var buyQuantity = m_BuyOrder.Quantity;
+            ulong buyQuantity = m_BuyOrder.Quantity;
 
             Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_BuyOrder, m_SellOrders, m_Trades));
-            var trade = m_TradeProcessor.Trades[0];
-           
+            Trade trade = m_TradeProcessor.Trades[0];
+
             Assert.That(trade.Instrument, Is.EqualTo(m_Instrument));
             Assert.That(trade.Price, Is.EqualTo(m_SellOrder.Price));
             Assert.That(trade.Quantity, Is.EqualTo(buyQuantity));
@@ -51,11 +48,10 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test]
         public void MatchSellOrderTest()
         {
-
-            var sellQuantity = m_SellOrder.Quantity;
+            ulong sellQuantity = m_SellOrder.Quantity;
 
             Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_SellOrder, m_BuyOrders, m_Trades));
-            var trade = m_TradeProcessor.Trades[0];
+            Trade trade = m_TradeProcessor.Trades[0];
 
             Assert.That(trade.Instrument, Is.EqualTo(m_Instrument));
             Assert.That(trade.Price, Is.EqualTo(m_BuyOrder.Price));
@@ -67,9 +63,12 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test]
         public void NoMatchTest()
         {
-            Assert.False(OrderBook.OrderProcessor.TryMatchOrder(new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, m_BuyOrder.Price + 10, 100ul),
-                m_BuyOrders, m_Trades));
-            Assert.That(this.m_TradeProcessor.Trades.Count, Is.EqualTo(0));
+            Assert.False(
+                OrderBook.OrderProcessor.TryMatchOrder(
+                    new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell,
+                                    m_BuyOrder.Price + 10, 100ul),
+                    m_BuyOrders, m_Trades));
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(0));
             Assert.That(m_BuyOrders.Count() == 1);
         }
 
@@ -82,9 +81,9 @@ namespace OrderMatchingEngineTests.UnitTests
             m_BuyOrder.Quantity = 150;
             Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_BuyOrder, m_SellOrders, m_Trades));
 
-            Assert.That(this.m_TradeProcessor.Trades.Count, Is.EqualTo(2));
-            Assert.That(m_BuyOrder.Quantity == 0);
-            Assert.That(secondSellOrder.Quantity == 50);
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(2));
+            Assert.That(m_BuyOrder.Quantity, Is.EqualTo(0));
+            Assert.That(secondSellOrder.Quantity, Is.EqualTo(50));
             Assert.That(m_SellOrders[0] == secondSellOrder && m_SellOrders.Count() == 1);
         }
 
@@ -92,12 +91,12 @@ namespace OrderMatchingEngineTests.UnitTests
         public void BigSellMatchesMultipleBuysTest()
         {
             var secondBuyOrder = new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled,
-                                                  Order.BuyOrSell.Buy, 90, 100);
+                                                 Order.BuyOrSell.Buy, 90, 100);
             m_BuyOrders.Insert(secondBuyOrder);
             m_SellOrder.Quantity = 150;
             Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_SellOrder, m_BuyOrders, m_Trades));
 
-            Assert.That(this.m_TradeProcessor.Trades.Count, Is.EqualTo(2));
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(2));
             Assert.That(m_BuyOrder.Quantity == 0);
             Assert.That(secondBuyOrder.Quantity == 50);
             Assert.That(m_BuyOrders[0] == secondBuyOrder && m_BuyOrders.Count() == 1);
@@ -109,12 +108,11 @@ namespace OrderMatchingEngineTests.UnitTests
             m_SellOrder.Quantity = 50;
             Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_SellOrder, m_BuyOrders, m_Trades));
 
-            Assert.That(this.m_TradeProcessor.Trades.Count, Is.EqualTo(1));
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(1));
             Assert.That(m_BuyOrder.Quantity == 50);
 
             Assert.That(m_BuyOrders[0] == m_BuyOrder && m_BuyOrders.Count() == 1);
             Assert.That(m_SellOrder.Quantity == 0);
-
         }
 
         [Test]
@@ -123,11 +121,41 @@ namespace OrderMatchingEngineTests.UnitTests
             m_BuyOrder.Quantity = 50;
             Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_BuyOrder, m_SellOrders, m_Trades));
 
-            Assert.That(this.m_TradeProcessor.Trades.Count, Is.EqualTo(1));
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(1));
             Assert.That(m_SellOrder.Quantity == 50);
 
             Assert.That(m_SellOrders[0] == m_SellOrder && m_SellOrders.Count() == 1);
             Assert.That(m_BuyOrder.Quantity == 0);
+        }
+
+        [Test]
+        public void BigBuyMatchesPartialSellTest()
+        {
+            m_BuyOrder.Quantity = 150;
+            Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_BuyOrder, m_SellOrders, m_Trades));
+
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(1));
+            Assert.That(m_SellOrder.Quantity == 0);
+
+            Assert.That(m_BuyOrders[0] == m_BuyOrder && m_BuyOrders.Count() == 1);
+            Assert.That(m_SellOrders.Count() == 0);
+
+            Assert.That(m_BuyOrder.Quantity == 50);
+        }
+
+        [Test]
+        public void BigSellMatchesPartialBuyTest()
+        {
+            m_SellOrder.Quantity = 150;
+            Assert.True(OrderBook.OrderProcessor.TryMatchOrder(m_SellOrder, m_BuyOrders, m_Trades));
+
+            Assert.That(m_TradeProcessor.Trades.Count, Is.EqualTo(1));
+            Assert.That(m_BuyOrder.Quantity == 0);
+
+            Assert.That(m_SellOrders[0] == m_SellOrder && m_SellOrders.Count() == 1);
+            Assert.That(m_BuyOrders.Count() == 0);
+
+            Assert.That(m_SellOrder.Quantity == 50);
         }
     }
 }

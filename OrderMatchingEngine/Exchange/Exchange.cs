@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace OrderMatchingEngine.Exchange
 {
-    class Exchange
+    internal class Exchange
     {
-        private Dictionary<Market.MarketName, Market> m_Markets;
+        private readonly Dictionary<Market.MarketName, Market> m_Markets;
 
         public Exchange(IDictionary<Market.MarketName, Market> markets)
         {
@@ -23,7 +22,7 @@ namespace OrderMatchingEngine.Exchange
 
                 Market market;
 
-                if (this.m_Markets.TryGetValue(marketName, out market))
+                if (m_Markets.TryGetValue(marketName, out market))
                     return market;
                 else
                     throw new MarketNotOnThisExchangeException();

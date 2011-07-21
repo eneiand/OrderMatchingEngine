@@ -24,7 +24,8 @@ namespace OrderMatchingEngine.OrderBook
         public void Insert(Order order)
         {
             if (order == null) throw new ArgumentNullException("order");
-            if (!OrderIsForThisList(order)) throw new ArgumentException("order is not valid for this Orders instance", "order");
+            if (!OrderIsForThisList(order))
+                throw new ArgumentException("order is not valid for this Orders instance", "order");
 
 
             lock (m_Locker)
@@ -37,7 +38,8 @@ namespace OrderMatchingEngine.OrderBook
         public void Remove(Order order)
         {
             if (order == null) throw new ArgumentNullException("order");
-            if (!OrderIsForThisList(order)) throw new ArgumentException("order is not valid for this Orders instance", "order");
+            if (!OrderIsForThisList(order))
+                throw new ArgumentException("order is not valid for this Orders instance", "order");
 
             lock (m_Locker)
                 m_Orders.Remove(order);
@@ -45,7 +47,7 @@ namespace OrderMatchingEngine.OrderBook
 
         private bool OrderIsForThisList(Order order)
         {
-            return order.Instrument == this.Instrument && OrderIsCorrectType(order);
+            return order.Instrument == Instrument && OrderIsCorrectType(order);
         }
 
         protected abstract bool OrderIsCorrectType(Order order);
@@ -57,7 +59,7 @@ namespace OrderMatchingEngine.OrderBook
 
         protected static int HighestPriceFirst(Order x, Order y)
         {
-            return -1 * x.Price.CompareTo(y.Price);
+            return -1*x.Price.CompareTo(y.Price);
         }
 
 
@@ -65,7 +67,7 @@ namespace OrderMatchingEngine.OrderBook
         {
             List<Order> foundOrders;
             lock (m_Locker)
-                foundOrders = this.m_Orders.FindAll(filter);
+                foundOrders = m_Orders.FindAll(filter);
 
             return foundOrders;
         }
@@ -89,8 +91,8 @@ namespace OrderMatchingEngine.OrderBook
         {
             get
             {
-                lock (this.m_Locker)
-                    return this.m_Orders[i];
+                lock (m_Locker)
+                    return m_Orders[i];
             }
         }
     }
@@ -108,7 +110,9 @@ namespace OrderMatchingEngine.OrderBook
         }
 
 
-        public BuyOrders(Instrument instrument) : base(instrument, HighestPriceEarliestTimePriority) { }
+        public BuyOrders(Instrument instrument) : base(instrument, HighestPriceEarliestTimePriority)
+        {
+        }
 
         protected override bool OrderIsCorrectType(Order order)
         {
@@ -120,7 +124,7 @@ namespace OrderMatchingEngine.OrderBook
     {
         private static int LowestPriceEarliestTimePriority(Order x, Order y)
         {
-            int priceComp = (-1 * HighestPriceFirst(x, y));
+            int priceComp = (-1*HighestPriceFirst(x, y));
 
             if (priceComp == 0)
                 return EarliestTimeFirst(x, y);
@@ -129,7 +133,9 @@ namespace OrderMatchingEngine.OrderBook
         }
 
 
-        public SellOrders(Instrument instrument) : base(instrument, LowestPriceEarliestTimePriority) { }
+        public SellOrders(Instrument instrument) : base(instrument, LowestPriceEarliestTimePriority)
+        {
+        }
 
         protected override bool OrderIsCorrectType(Order order)
         {

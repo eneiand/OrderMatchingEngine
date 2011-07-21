@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using OrderMatchingEngine.OrderBook;
 
 namespace OrderMatchingEngine.Exchange
 {
     public class Market
     {
-
         private readonly Dictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
 
         public Market(IDictionary<Instrument, OrderBook.OrderBook> orderBooks)
@@ -26,14 +23,10 @@ namespace OrderMatchingEngine.Exchange
 
                 OrderBook.OrderBook orderBook;
 
-                if (this.m_OrderBooks.TryGetValue(instrument, out orderBook))
-                {
+                if (m_OrderBooks.TryGetValue(instrument, out orderBook))
                     return orderBook;
-                }
                 else
-                {
                     throw new InstrumentNotInThisMarketException();
-                }
             }
         }
 
@@ -64,7 +57,5 @@ namespace OrderMatchingEngine.Exchange
             {
             }
         }
-
-
     }
 }

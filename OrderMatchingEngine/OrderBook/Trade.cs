@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace OrderMatchingEngine
+namespace OrderMatchingEngine.OrderBook
 {
     public class Trade
     {
@@ -34,8 +32,8 @@ namespace OrderMatchingEngine
 
         public override string ToString()
         {
-            StringBuilder s = new StringBuilder(Instrument.Symbol);
-            s.AppendFormat(" {0} {1} ", this.Quantity, this.Price);
+            var s = new StringBuilder(Instrument.Symbol);
+            s.AppendFormat(" {0} {1} ", Quantity, Price);
             return s.ToString();
         }
     }

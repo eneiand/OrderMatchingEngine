@@ -2,14 +2,13 @@
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
-using OrderMatchingEngine;
 using OrderMatchingEngine.Exchange;
 using OrderMatchingEngine.OrderBook;
 
 namespace OrderMatchingEngineTests.UnitTests
 {
     [TestFixture]
-    class MarketTests
+    internal class MarketTests
     {
         private Market m_Market;
         private Instrument m_Instrument;
@@ -58,7 +57,7 @@ namespace OrderMatchingEngineTests.UnitTests
             var orders = new List<Order>(Orders());
 
 
-            foreach (var order in orders)
+            foreach (Order order in orders)
             {
                 Order order1 = order;
                 ThreadPool.QueueUserWorkItem((e) => m_Market.SubmitOrder(order1));
@@ -74,12 +73,13 @@ namespace OrderMatchingEngineTests.UnitTests
 
         private IEnumerable<Order> Orders()
         {
-            for (int i = 0; i < 2; ++i)
-                yield return new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, i, (ulong)i);
+            for (int i = 1; i < 3; ++i)
+                yield return
+                    new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, i, 10ul);
 
-            for (int i = 2; i < 4; ++i)
-                yield return new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, i, (ulong)i);
-
+            for (int i = 3; i < 5; ++i)
+                yield return
+                    new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Sell, i, 10ul);
         }
     }
 }

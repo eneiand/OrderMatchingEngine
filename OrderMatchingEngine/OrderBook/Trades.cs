@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace OrderMatchingEngine.OrderBook
 {
@@ -11,7 +8,7 @@ namespace OrderMatchingEngine.OrderBook
     {
         public Instrument Instrument { get; private set; }
         public TradeProcessor TradeProcessingStrategy { get; set; }
-        private Object m_Locker = new Object();
+        private readonly Object m_Locker = new Object();
 
         public Trades(Instrument instrument, TradeProcessor tradeProcessingStrategy)
         {
@@ -28,7 +25,7 @@ namespace OrderMatchingEngine.OrderBook
         {
             if (trade == null) throw new ArgumentNullException("trade");
 
-            if (trade.Instrument != this.Instrument)
+            if (trade.Instrument != Instrument)
                 throw new TradeIsNotForThisInstrumentException();
 
             lock (m_Locker)
@@ -43,6 +40,7 @@ namespace OrderMatchingEngine.OrderBook
         {
             public abstract void Add(Trade trade);
         }
+
         public class StreamWritingTradeProcessor : TradeProcessor
         {
             public StreamWriter Writer { get; private set; }
@@ -60,8 +58,8 @@ namespace OrderMatchingEngine.OrderBook
 
         public class InMemoryTradeProcessor : TradeProcessor
         {
-            private List<Trade> m_Trades = new List<Trade>();
-            private Object m_Locker = new object();
+            private readonly List<Trade> m_Trades = new List<Trade>();
+            private readonly Object m_Locker = new object();
 
             public override void Add(Trade trade)
             {
@@ -79,5 +77,4 @@ namespace OrderMatchingEngine.OrderBook
             }
         }
     }
-
 }

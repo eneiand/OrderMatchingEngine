@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 using NUnit.Framework;
-using OrderMatchingEngine;
 using OrderMatchingEngine.OrderBook;
 
 namespace OrderMatchingEngineTests.UnitTests
 {
     [TestFixture]
-    class OrderBookTests
+    internal class OrderBookTests
     {
         private OrderBook m_OrderBook;
         private Instrument m_Instrument;
@@ -25,17 +24,18 @@ namespace OrderMatchingEngineTests.UnitTests
 
             m_OrderBook = new OrderBook(m_Instrument, m_BuyOrders, m_SellOrders, m_Trades);
 
-            m_Orders = new List<Order>(){new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, 100, 100),
-            new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilDate, Order.BuyOrSell.Sell, 110, 100)};
+            m_Orders = new List<Order>
+            {
+                new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilCancelled, Order.BuyOrSell.Buy, 100, 100),
+                new EquityOrder(m_Instrument, Order.OrderTypes.GoodUntilDate, Order.BuyOrSell.Sell, 110, 100)
+            };
         }
 
         [Test]
         public void InsertOrderTest()
         {
-            foreach (var order in m_Orders)
-            {
+            foreach (Order order in m_Orders)
                 m_OrderBook.InsertOrder(order);
-            }
 
             Assert.That(m_OrderBook.BuyOrders[0], Is.EqualTo(m_Orders[0]));
             Assert.That(m_OrderBook.SellOrders[0], Is.EqualTo(m_Orders[1]));
@@ -44,12 +44,11 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test, Timeout(500)]
         public void InsertOrderPoolTest()
         {
-            m_OrderBook.OrderProcessingStrategy = new OrderBook.ThreadPooledOrderProcessor(m_BuyOrders, m_SellOrders, m_Trades);
+            m_OrderBook.OrderProcessingStrategy = new OrderBook.ThreadPooledOrderProcessor(m_BuyOrders, m_SellOrders,
+                                                                                           m_Trades);
 
-            foreach (var order in m_Orders)
-            {
+            foreach (Order order in m_Orders)
                 m_OrderBook.InsertOrder(order);
-            }
 
             List<Order> buys;
             List<Order> sells;
@@ -58,7 +57,8 @@ namespace OrderMatchingEngineTests.UnitTests
             {
                 buys = new List<Order>(m_BuyOrders);
                 sells = new List<Order>(m_SellOrders);
-            } while (buys.Count == 0 || sells.Count == 0); //spin wait for thread pool
+            }
+            while (buys.Count == 0 || sells.Count == 0); //spin wait for thread pool
 
             Assert.That(m_OrderBook.BuyOrders[0], Is.EqualTo(m_Orders[0]));
             Assert.That(m_OrderBook.SellOrders[0], Is.EqualTo(m_Orders[1]));
@@ -67,12 +67,11 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test, Timeout(500)]
         public void InsertOrderDedicatedThreadTest()
         {
-            m_OrderBook.OrderProcessingStrategy = new OrderBook.DedicatedThreadOrderProcessor(m_BuyOrders, m_SellOrders, m_Trades);
+            m_OrderBook.OrderProcessingStrategy = new OrderBook.DedicatedThreadOrderProcessor(m_BuyOrders, m_SellOrders,
+                                                                                              m_Trades);
 
-            foreach (var order in m_Orders)
-            {
+            foreach (Order order in m_Orders)
                 m_OrderBook.InsertOrder(order);
-            }
 
             List<Order> buys;
             List<Order> sells;
@@ -81,7 +80,8 @@ namespace OrderMatchingEngineTests.UnitTests
             {
                 buys = new List<Order>(m_BuyOrders);
                 sells = new List<Order>(m_SellOrders);
-            } while (buys.Count == 0 || sells.Count == 0); //spin wait for thread pool
+            }
+            while (buys.Count == 0 || sells.Count == 0); //spin wait for thread pool
 
             Assert.That(m_OrderBook.BuyOrders[0], Is.EqualTo(m_Orders[0]));
             Assert.That(m_OrderBook.SellOrders[0], Is.EqualTo(m_Orders[1]));
