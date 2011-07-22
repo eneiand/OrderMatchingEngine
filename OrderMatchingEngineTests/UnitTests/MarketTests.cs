@@ -4,6 +4,7 @@ using System.Threading;
 using NUnit.Framework;
 using OrderMatchingEngine.Exchange;
 using OrderMatchingEngine.OrderBook;
+using OrderMatchingEngine.OrderBook.Stats;
 
 namespace OrderMatchingEngineTests.UnitTests
 {
@@ -69,6 +70,26 @@ namespace OrderMatchingEngineTests.UnitTests
             Assert.That(orders[1], Is.EqualTo(m_OrderBook.BuyOrders[0]));
             Assert.That(orders[2], Is.EqualTo(m_OrderBook.SellOrders[0]));
             Assert.That(orders[3], Is.EqualTo(m_OrderBook.SellOrders[1]));
+        }
+
+
+        [Test]
+        public void OrderBooksPrioritiserTest()
+        {
+            List<OrderBook> orderBooks = new List<OrderBook>();
+
+            for(int i=0; i < 10; ++i)
+            {
+                var  book = new OrderBook(new Instrument("" + i));
+                for (int j = 0; j < i; ++j )
+                {
+                    var stat = book.Statistics[Statistics.Stat.NumOrders];
+                    ++stat;
+                }
+                orderBooks.Add(book);
+            }
+            
+            Market.PrioritiseOrderBooks(orderBooks);
         }
 
         private IEnumerable<Order> Orders()

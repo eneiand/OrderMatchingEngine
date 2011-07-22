@@ -1,17 +1,22 @@
 ﻿using System;
+using System.Collections.Generic;
+using OrderMatchingEngine.Exchange;
 using OrderMatchingEngine.OrderBook.OrderProcessing;
+using OrderMatchingEngine.OrderBook.Stats;
 
 namespace OrderMatchingEngine.OrderBook
 {
     public class OrderBook
     {
         private OrderProcessor m_OrderProcessingStrategy;
+
         private readonly Object m_Locker = new Object();
 
         public Instrument Instrument { get; private set; }
         public BuyOrders BuyOrders { get; private set; }
         public SellOrders SellOrders { get; private set; }
         public Trades Trades { get; private set; }
+        public Statistics Statistics { get; private set; }
 
         public OrderProcessor OrderProcessingStrategy
         {
@@ -46,6 +51,7 @@ namespace OrderMatchingEngine.OrderBook
             SellOrders = sellOrders;
             Trades = trades;
             OrderProcessingStrategy = orderProcessingStrategy;
+            Statistics = new Statistics();
         }
 
         public OrderBook(Instrument instrument)
@@ -65,9 +71,17 @@ namespace OrderMatchingEngine.OrderBook
             if (order.Instrument != Instrument)
                 throw new OrderIsNotForThisBookException();
 
+            OrderReceived();
+
             //the strategy can change at runtime so lock here and in OrderProcessingStrategy property
             lock (m_Locker)
                 OrderProcessingStrategy.InsertOrder(order);
+        }
+
+        private void OrderReceived()
+        {
+            var numOrders = Statistics[Statistics.Stat.NumOrders];
+            numOrders++;
         }
 
         public class OrderIsNotForThisBookException : Exception
