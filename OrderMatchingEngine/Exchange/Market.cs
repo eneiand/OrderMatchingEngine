@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Timers;
 using OrderMatchingEngine.OrderBook;
 using OrderMatchingEngine.OrderBook.OrderProcessing;
 using OrderMatchingEngine.OrderBook.Stats;
-using Timer = System.Timers.Timer;
 
 namespace OrderMatchingEngine.Exchange
 {
@@ -13,8 +11,8 @@ namespace OrderMatchingEngine.Exchange
     {
         private readonly Dictionary<Instrument, OrderBook.OrderBook> m_OrderBooks;
         private readonly List<Timer> m_Timers;
-        private bool m_TimersStarted = false;
-        private Object m_Locker = new Object();
+        private bool m_TimersStarted;
+        private readonly Object m_Locker = new Object();
 
         public Market(IDictionary<Instrument, OrderBook.OrderBook> orderBooks, IEnumerable<Timer> timers)
         {
@@ -22,7 +20,7 @@ namespace OrderMatchingEngine.Exchange
 
             m_OrderBooks = new Dictionary<Instrument, OrderBook.OrderBook>(orderBooks);
             m_Timers = new List<Timer>(timers);
-            m_Timers.ForEach(t=> t.Stop());
+            m_Timers.ForEach(t => t.Stop());
         }
 
         public Market(IDictionary<Instrument, OrderBook.OrderBook> orderBooks)
@@ -30,23 +28,31 @@ namespace OrderMatchingEngine.Exchange
             if (orderBooks == null) throw new ArgumentNullException("orderBooks");
 
             m_OrderBooks = new Dictionary<Instrument, OrderBook.OrderBook>(orderBooks);
-            m_Timers = new List<Timer>();
+            m_Timers = new List<Timer> {OrdersPerSecondPriority()};
+        }
 
-            var prioritiseOrderBooksTimer = new Timer(){AutoReset = true, Enabled = false, Interval = 1000};
-            prioritiseOrderBooksTimer.Elapsed += delegate
+        private Timer OrdersPerSecondPriority()
+        {
+            var numOrdersPerSecondMonitor = new Timer {AutoReset = true, Enabled = false, Interval = 1000};
+            numOrdersPerSecondMonitor.Elapsed += delegate
                                                      {
-                                                         List<OrderBook.OrderBook> ob = new List<OrderBook.OrderBook>();
+                                                         var ob = new List<OrderBook.OrderBook>();
                                                          foreach (var orderBook in m_OrderBooks)
                                                          {
                                                              ob.Add(orderBook.Value);
                                                          }
 
-                                                         PrioritiseOrderBooks(ob);
+                                                         PrioritiseOrderBooks(ob,
+                                                                              (x, y) =>
+                                                                              -1*
+                                                                              x.Statistics[Statistics.Stat.NumOrders].
+                                                                                  Value.CompareTo(
+                                                                                      y.Statistics[
+                                                                                          Statistics.Stat.NumOrders].
+                                                                                          Value));
                                                          ResetStats(ob);
                                                      };
-
-            m_Timers.Add(prioritiseOrderBooksTimer);
-
+            return numOrdersPerSecondMonitor;
         }
 
         private static void ResetStats(List<OrderBook.OrderBook> ob)
@@ -54,28 +60,26 @@ namespace OrderMatchingEngine.Exchange
             ob.ForEach(o => o.Statistics[Statistics.Stat.NumOrders].Reset());
         }
 
-        public static void PrioritiseOrderBooks(IEnumerable<OrderBook.OrderBook> orderBooks )
+        public static void PrioritiseOrderBooks(List<OrderBook.OrderBook> orderBooks,
+                                                Comparison<OrderBook.OrderBook> orderBookComparer)
         {
-            List<OrderBook.OrderBook> oBooks = new List<OrderBook.OrderBook>(orderBooks);
 
-            oBooks.Sort((x, y) =>
-                            
-                             -1 *  x.Statistics[Statistics.Stat.NumOrders].Value.CompareTo(
-                                    y.Statistics[Statistics.Stat.NumOrders].Value)
-                            );
+            orderBooks.Sort(orderBookComparer);
 
-            for (int i = 0; i < oBooks.Count; ++i )
+            for (int i = 0; i < orderBooks.Count; ++i)
             {
-                decimal percentageOfBooks = ((decimal)(i+1)/(decimal)oBooks.Count)*100m;
-                var oBook = oBooks[i];
+                decimal percentageOfBooks = ((i + 1) / (decimal)orderBooks.Count) * 100m;
+                OrderBook.OrderBook oBook = orderBooks[i];
 
-                if(percentageOfBooks <= 10 && !(oBook.OrderProcessingStrategy is DedicatedThreadsOrderProcessor))
-                    oBook.OrderProcessingStrategy = new DedicatedThreadsOrderProcessor(oBook.BuyOrders, oBook.SellOrders, oBook.Trades);
-                else if(percentageOfBooks <= 30 && !(oBook.OrderProcessingStrategy is ThreadPooledOrderProcessor))
-                    oBook.OrderProcessingStrategy = new ThreadPooledOrderProcessor(oBook.BuyOrders, oBook.SellOrders, oBook.Trades);
-                else if(!(oBook.OrderProcessingStrategy is SynchronousOrderProcessor))
-                    oBook.OrderProcessingStrategy = new SynchronousOrderProcessor(oBook.BuyOrders, oBook.SellOrders, oBook.Trades);
-
+                if (percentageOfBooks <= 10 && !(oBook.OrderProcessingStrategy is DedicatedThreadsOrderProcessor))
+                    oBook.OrderProcessingStrategy = new DedicatedThreadsOrderProcessor(oBook.BuyOrders, oBook.SellOrders,
+                                                                                       oBook.Trades);
+                else if (percentageOfBooks <= 30 && !(oBook.OrderProcessingStrategy is ThreadPooledOrderProcessor))
+                    oBook.OrderProcessingStrategy = new ThreadPooledOrderProcessor(oBook.BuyOrders, oBook.SellOrders,
+                                                                                   oBook.Trades);
+                else if (!(oBook.OrderProcessingStrategy is SynchronousOrderProcessor))
+                    oBook.OrderProcessingStrategy = new SynchronousOrderProcessor(oBook.BuyOrders, oBook.SellOrders,
+                                                                                  oBook.Trades);
             }
         }
 

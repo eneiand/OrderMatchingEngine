@@ -64,7 +64,7 @@ namespace OrderMatchingEngineTests.UnitTests
                 ThreadPool.QueueUserWorkItem((e) => m_Market.SubmitOrder(order1));
             }
 
-            while (m_OrderBook.SellOrders.Count() != 2 && m_OrderBook.BuyOrders.Count() != 2) ;
+            while (m_OrderBook.SellOrders.Count() != 2 || m_OrderBook.BuyOrders.Count() != 2) ;
 
             Assert.That(orders[0], Is.EqualTo(m_OrderBook.BuyOrders[1]));
             Assert.That(orders[1], Is.EqualTo(m_OrderBook.BuyOrders[0]));
@@ -76,20 +76,27 @@ namespace OrderMatchingEngineTests.UnitTests
         [Test]
         public void OrderBooksPrioritiserTest()
         {
-            List<OrderBook> orderBooks = new List<OrderBook>();
+            var orderBooks = new List<OrderBook>();
 
-            for(int i=0; i < 10; ++i)
+            for (int i = 0; i < 10; ++i)
             {
-                var  book = new OrderBook(new Instrument("" + i));
-                for (int j = 0; j < i; ++j )
+                var book = new OrderBook(new Instrument("" + i));
+                for (int j = 0; j < i; ++j)
                 {
-                    var stat = book.Statistics[Statistics.Stat.NumOrders];
+                    Statistic stat = book.Statistics[Statistics.Stat.NumOrders];
                     ++stat;
                 }
                 orderBooks.Add(book);
             }
-            
-            Market.PrioritiseOrderBooks(orderBooks);
+
+            Market.PrioritiseOrderBooks(orderBooks,
+                                        (x, y) => -1*x.Statistics[Statistics.Stat.NumOrders].Value.CompareTo(
+                                            y.Statistics[Statistics.Stat.NumOrders].Value));
+
+            for(int i = 1; i < orderBooks.Count; ++i)
+            {
+                Assert.That(orderBooks[i].Statistics[Statistics.Stat.NumOrders].Value, Is.LessThanOrEqualTo(orderBooks[i-1].Statistics[Statistics.Stat.NumOrders].Value));
+            }
         }
 
         private IEnumerable<Order> Orders()
