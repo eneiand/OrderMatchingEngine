@@ -61,8 +61,13 @@ namespace OrderMatchingEngine.Exchange
         }
 
         public static void PrioritiseOrderBooks(List<OrderBook.OrderBook> orderBooks,
-                                                Comparison<OrderBook.OrderBook> orderBookComparer)
+                                                Comparison<OrderBook.OrderBook> orderBookComparer, //reads as "sort the OrderBooks by orderBookComparer
+                                                int dedicatedThreadsPercentage = 10,    // the top 10% of the sorted OrderBooks should have dedicated threads,
+                                                int threadPooledPercentage = 20)        // the next 20% of the OrderBooks use the ThreadPool
+                                                                                        // and the remaining 70% will be synchronouss"
         {
+            if (orderBooks == null) throw new ArgumentNullException("orderBooks");
+            if (orderBookComparer == null) throw new ArgumentNullException("orderBookComparer");
 
             orderBooks.Sort(orderBookComparer);
 
@@ -70,11 +75,12 @@ namespace OrderMatchingEngine.Exchange
             {
                 decimal percentageOfBooks = ((i + 1) / (decimal)orderBooks.Count) * 100m;
                 OrderBook.OrderBook oBook = orderBooks[i];
+                int limitForThreadPooled = dedicatedThreadsPercentage + threadPooledPercentage;
 
-                if (percentageOfBooks <= 10 && !(oBook.OrderProcessingStrategy is DedicatedThreadsOrderProcessor))
+                if (percentageOfBooks <= dedicatedThreadsPercentage && !(oBook.OrderProcessingStrategy is DedicatedThreadsOrderProcessor))
                     oBook.OrderProcessingStrategy = new DedicatedThreadsOrderProcessor(oBook.BuyOrders, oBook.SellOrders,
                                                                                        oBook.Trades);
-                else if (percentageOfBooks <= 30 && !(oBook.OrderProcessingStrategy is ThreadPooledOrderProcessor))
+                else if (percentageOfBooks <= limitForThreadPooled && !(oBook.OrderProcessingStrategy is ThreadPooledOrderProcessor))
                     oBook.OrderProcessingStrategy = new ThreadPooledOrderProcessor(oBook.BuyOrders, oBook.SellOrders,
                                                                                    oBook.Trades);
                 else if (!(oBook.OrderProcessingStrategy is SynchronousOrderProcessor))
